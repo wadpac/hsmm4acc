@@ -1,2 +1,7 @@
 nose
 sphinx
+numpy
+scipy
+cython
+pandas
+matplotplib
