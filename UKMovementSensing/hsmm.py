@@ -3,21 +3,74 @@ import pyhsmm.basic.distributions as distributions
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.colors import LinearSegmentedColormap
+from pybasicbayes.util.plot import plot_gaussian_2D
+from time import clock
+import copy
 
+def train_hsmm(X_list, Nmax=10, nr_resamples=10, trunc=600, visualize=True, example_index=0):
+    """
+    Fit an Hidden Semi Markov Model on a list of sequences.
 
-def train_hsmm(X, Nmax=10, nr_resamples=100, visualize=True):
-    dim = X.shape[1]
+    Parameters
+    ------
+    X_list : list of Numpy arrays
+        The sequences of shape (num_timesteps, num_channels)
+    Nmax : int, optional
+        Maximum number of states
+    nr_resamples : int, optional
+        Number of times the model is resampled on all data
+    trunc : int, optional
+        Maximum duration of a state, for optimization
+    visualize : bool, optional
+        Option to show plots during the process
+    example_index: int, optional
+        Which of the sequences to use as an example for plotting
+
+    Returns
+    ------
+    model : pyhsmm model
+        The resampled model
+    model_dists : list of distributions
+        Observation distributions of the states for each sample step
+    """
+    dim = X_list[0].shape[1]
     model = initialize_model(Nmax, dim)
-    model.add_data(X, trunc=600)
+    model_dists = []
+    if visualize:
+        fig, axes = plt.subplots(nr_resamples, figsize=(15,5))
+    for X in X_list:
+        model.add_data(X, trunc=trunc)
     for idx in xrange(nr_resamples):
+        t_start = clock()
+        #model_copy = model.resample_and_copy()
         model.resample_model()
-        if (idx + 1) % 10 == 0 and visualize:
+        t_end = clock()
+        model_dists.append(copy.deepcopy(model.obs_distns))
+        if (idx + 1) % 1 == 0 and visualize:
             print(idx)
-            model.plot()
-    return model
+            print('Resampled {} sequences in {:.1f} seconds'.format(len(X_list), t_end-t_start))
+            model.plot_stateseq(example_index, ax=axes[idx])
+            plot_observations(X_list[example_index], 0, 1, model,
+                              model.stateseqs[example_index], Nmax)
+    return model, model_dists
 
 
 def initialize_model(Nmax, dim):
+    """
+    Fit an Hidden Semi Markov Model on a list of sequences.
+
+    Parameters
+    ------
+    Nmax : int, optional
+        Maximum number of states
+    dim : int
+        The number of channels
+
+    Returns
+    ------
+    model : pyhsmm model
+        The initial model
+    """
     obs_hypparams = {'mu_0': np.zeros(dim),  # mean of gaussians
                      'sigma_0': np.eye(dim),  # std of gaussians
                      'kappa_0': 0.3,
@@ -43,13 +96,30 @@ def initialize_model(Nmax, dim):
         dur_distns=dur_distns)
     return model
 
+def plot_observations(X, dim0, dim1, model, hidden_states, num_states):
+    fig, axes = plt.subplots(2, figsize=(10,10))
+    colormap, cmap = get_color_map(num_states)
+    statecolors = [colormap[i] for i in hidden_states]
+    axes[0].scatter(X[:, dim0], X[:, dim1], color='black', s=5)
+    for i in range(num_states):
+        plot_gaussian_2D(model.obs_distns[i].mu[[dim0, dim1],], model.obs_distns[i].sigma[[dim0, dim1], :][:, [dim0, dim1]], color=colormap[i], ax=axes[0])
+
+    axes[1].scatter(X[:,0], X[:,1], color=statecolors, s=5)
+
+def get_color_map(num_states):
+    colours = plt.cm.rainbow(np.linspace(0, 1, num_states))
+    colormap = {i: colours[i] for i in range(num_states)}
+    cmap = LinearSegmentedColormap.from_list('name',
+                                             colormap.values(),
+                                             num_states)
+    return colormap, cmap
 
 def plot_boxplots(data, hidden_states):
     '''
     Plot boxplots for all variables in the dataset, per state
 
     Parameters
-    ----------
+    ------
     data : pandas DataFrame
         Data to plot
     hidden_states: iteretable
@@ -82,7 +152,7 @@ def plot_perstate(data, hidden_states):
     hidden_states: iteretable
         the hidden states corresponding to the timesteps
     '''
-    num_states = max(hidden_states)
+    num_states = max(hidden_states)+1
     fig, axs = plt.subplots(
         num_states, sharex=True, sharey=True, figsize=(15, 15))
     colours = plt.cm.rainbow(np.linspace(0, 1, num_states))
@@ -97,7 +167,7 @@ def plot_perstate(data, hidden_states):
     plt.show()
 
 
-def plot_states_and_var(data, hidden_states, columns=None, by='Activity'):
+def plot_states_and_var(data, hidden_states, cmap=None, columns=None, by='Activity'):
     '''
     Make  a plot of the data and the states
 
@@ -113,20 +183,18 @@ def plot_states_and_var(data, hidden_states, columns=None, by='Activity'):
         The column to group on
     '''
     fig = plt.figure(figsize=(15, 5))
-    byAct = data.groupby(by)
     fig, ax = plt.subplots(figsize=(15, 5))
     if columns is None:
         columns = data.columns
-    for act, dfa in byAct:
+    for act in set(data[by]):
         for col in columns:
-            dfa[col].plot(label=col+' - '+act, ax=ax)
+            dfa = data[col].copy()
+            dfa[data[by] != act] = 0
+            dfa.plot(label=str(col)+' - '+str(act), ax=ax)
     plt.legend(bbox_to_anchor=(0., 1.02, 1., .102), loc=3)
-    num_states = max(hidden_states)
-    colours = plt.cm.rainbow(np.linspace(0, 1, num_states))
-    colormap = {i: colours[i] for i in range(num_states)}
-    cmap = LinearSegmentedColormap.from_list('name',
-                                             colormap.values(),
-                                             num_states)
+    if cmap is None:
+        num_states = max(hidden_states)+1
+        colormap, cmap = get_color_map(num_states)
     scale = np.array(data[columns]).max()
     sca = plt.scatter(
         data.index,
