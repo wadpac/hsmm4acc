@@ -2,4 +2,4 @@
 doc/build/*
 *coverage*
 notebooks/.ipynb_checkpoints/
-
+.idea/

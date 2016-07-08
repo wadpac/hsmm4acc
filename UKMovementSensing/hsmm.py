@@ -7,6 +7,7 @@ from pybasicbayes.util.plot import plot_gaussian_2D
 from time import clock
 import copy
 
+
 def train_hsmm(X_list, Nmax=10, nr_resamples=10, trunc=600, visualize=True, example_index=0):
     """
     Fit an Hidden Semi Markov Model on a list of sequences.
@@ -37,18 +38,19 @@ def train_hsmm(X_list, Nmax=10, nr_resamples=10, trunc=600, visualize=True, exam
     model = initialize_model(Nmax, dim)
     model_dists = []
     if visualize:
-        fig, axes = plt.subplots(nr_resamples, figsize=(15,5))
+        fig, axes = plt.subplots(nr_resamples, figsize=(15, 5))
     for X in X_list:
         model.add_data(X, trunc=trunc)
     for idx in xrange(nr_resamples):
         t_start = clock()
-        #model_copy = model.resample_and_copy()
+        # model_copy = model.resample_and_copy()
         model.resample_model()
         t_end = clock()
         model_dists.append(copy.deepcopy(model.obs_distns))
         if (idx + 1) % 1 == 0 and visualize:
             print(idx)
-            print('Resampled {} sequences in {:.1f} seconds'.format(len(X_list), t_end-t_start))
+            print('Resampled {} sequences in {:.1f} seconds'.format(len(X_list), t_end - t_start))
+            print('Log likelihood: ', model.log_likelihood())
             model.plot_stateseq(example_index, ax=axes[idx])
             plot_observations(X_list[example_index], 0, 1, model,
                               model.stateseqs[example_index], Nmax)
@@ -96,15 +98,37 @@ def initialize_model(Nmax, dim):
         dur_distns=dur_distns)
     return model
 
+
 def plot_observations(X, dim0, dim1, model, hidden_states, num_states):
-    fig, axes = plt.subplots(2, figsize=(10,10))
+    """
+    Plots 2 dimensions of the data, with the gaussian observation distributions
+
+    Parameters
+    ----------
+    X : Numpy array
+        Observeration sequence of dimensions (num_timesteps, num_channels)
+    dim0 : int
+        First channel to plot
+    dim1 : int
+        Second channel to plot
+    model : pyhsmm model
+        The model to plot
+    hidden_states : iteretable
+        List with the states for each time step
+    num_states : int
+        Total number of states
+
+    """
+    fig, axes = plt.subplots(2, figsize=(10, 10))
     colormap, cmap = get_color_map(num_states)
     statecolors = [colormap[i] for i in hidden_states]
     axes[0].scatter(X[:, dim0], X[:, dim1], color='black', s=5)
     for i in range(num_states):
-        plot_gaussian_2D(model.obs_distns[i].mu[[dim0, dim1],], model.obs_distns[i].sigma[[dim0, dim1], :][:, [dim0, dim1]], color=colormap[i], ax=axes[0])
+        plot_gaussian_2D(model.obs_distns[i].mu[[dim0, dim1],],
+                         model.obs_distns[i].sigma[[dim0, dim1], :][:, [dim0, dim1]], color=colormap[i], ax=axes[0])
 
-    axes[1].scatter(X[:,0], X[:,1], color=statecolors, s=5)
+    axes[1].scatter(X[:, 0], X[:, 1], color=statecolors, s=5)
+
 
 def get_color_map(num_states):
     colours = plt.cm.rainbow(np.linspace(0, 1, num_states))
@@ -113,6 +137,7 @@ def get_color_map(num_states):
                                              colormap.values(),
                                              num_states)
     return colormap, cmap
+
 
 def plot_boxplots(data, hidden_states):
     '''
@@ -134,7 +159,7 @@ def plot_boxplots(data, hidden_states):
         labels = []
         for i in set(hidden_states):
             mask = hidden_states == i
-            if(sum(mask) > 0):
+            if (sum(mask) > 0):
                 labels.append(str(i))
                 values = np.array(vals[mask])
                 data_to_plot.append(values)
@@ -152,7 +177,7 @@ def plot_perstate(data, hidden_states):
     hidden_states: iteretable
         the hidden states corresponding to the timesteps
     '''
-    num_states = max(hidden_states)+1
+    num_states = max(hidden_states) + 1
     fig, axs = plt.subplots(
         num_states, sharex=True, sharey=True, figsize=(15, 15))
     colours = plt.cm.rainbow(np.linspace(0, 1, num_states))
@@ -168,7 +193,7 @@ def plot_perstate(data, hidden_states):
 
 
 def plot_states_and_var(data, hidden_states, cmap=None, columns=None, by='Activity'):
-    '''
+    """
     Make  a plot of the data and the states
 
     Parameters
@@ -181,8 +206,7 @@ def plot_states_and_var(data, hidden_states, cmap=None, columns=None, by='Activi
         Which columns to plot
     by : str
         The column to group on
-    '''
-    fig = plt.figure(figsize=(15, 5))
+    """
     fig, ax = plt.subplots(figsize=(15, 5))
     if columns is None:
         columns = data.columns
@@ -190,10 +214,10 @@ def plot_states_and_var(data, hidden_states, cmap=None, columns=None, by='Activi
         for col in columns:
             dfa = data[col].copy()
             dfa[data[by] != act] = 0
-            dfa.plot(label=str(col)+' - '+str(act), ax=ax)
+            dfa.plot(label=str(col) + ' - ' + str(act), ax=ax)
     plt.legend(bbox_to_anchor=(0., 1.02, 1., .102), loc=3)
     if cmap is None:
-        num_states = max(hidden_states)+1
+        num_states = max(hidden_states) + 1
         colormap, cmap = get_color_map(num_states)
     scale = np.array(data[columns]).max()
     sca = plt.scatter(
@@ -209,7 +233,7 @@ def plot_states_and_var(data, hidden_states, cmap=None, columns=None, by='Activi
 
 
 def plot_heatmap(plotdata, horizontal_labels=None, vertical_labels=None, form='{:.4}'):
-    '''
+    """
     Plot a heat map with marked values
     Parameters
     ----------
@@ -221,11 +245,11 @@ def plot_heatmap(plotdata, horizontal_labels=None, vertical_labels=None, form='{
         vertical labels
     form : str, optional
         format for the value labels
-    '''
+    """
     fig, ax = plt.subplots()
-    colorplot = ax.pcolor(plotdata, cmap='coolwarm',)
-    ax.set_xticks(np.arange(plotdata.shape[1])+0.5, minor=False)
-    ax.set_yticks(np.arange(plotdata.shape[0])+0.5, minor=False)
+    colorplot = ax.pcolor(plotdata, cmap='coolwarm', )
+    ax.set_xticks(np.arange(plotdata.shape[1]) + 0.5, minor=False)
+    ax.set_yticks(np.arange(plotdata.shape[0]) + 0.5, minor=False)
     if horizontal_labels is None:
         horizontal_labels = range(plotdata.shape[1])
     ax.set_xticklabels(horizontal_labels, minor=False)

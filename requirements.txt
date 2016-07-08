@@ -4,4 +4,6 @@ numpy
 scipy
 cython
 pandas
-matplotplib
+matplotlib
+pyhsmm
+pybasicbayes
