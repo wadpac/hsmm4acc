@@ -5,22 +5,22 @@ require(mmap)
 library(tools)
 
 # specify working directory
-# setwd("D:/dropbox/Dropbox/Accelerometry/GGIR/development")
-
+#setwd("D:/dropbox/Dropbox/Accelerometry/GGIR/development")
+setwd("/media/sf_VBox_Shared/London/raw/next161" )
 #==================================================================
 # INPUT NEEDED:
 
 # specify file number to start and end with, fill in c() if unknown
 f0 = c() #file to start with if used in serial analyses
 f1 = Inf #c() #file to end with if used in serial analyses (modify accordingly, if infinite then it will process until last file)
-mode= c(2)    #What part of the analysis needs to be done (options: 1,2,3,4 and 5)
-datadir=  c() #Where is the raw accelerometer data? (leave as c() if you work with milestone data and mode > 1
+mode= c(1, 2)    #What part of the analysis needs to be done (options: 1,2,3,4 and 5)
+#datadir=  c() #Where is the raw accelerometer data? (leave as c() if you work with milestone data and mode > 1
 
-# datadir = "D:/dropbox/Dropbox/Accelerometry/GGIR/development/output_Millenium dress rehearsal/meta/raw"
-#datadir = "/media/sf_VBox_Shared/London/raw/first5/output_first5/meta/raw"
-outputdir= "/media/sf_VBox_Shared/London/raw/first5"  #"D:/sharedfolder/first5" #Name directory where output needs to be stored
-studyname="first5"  #name of study, only needed if datadir is a list of filenames
-selectdaysfile = "/media/sf_VBox_Shared/London/raw/first5/wearcodes.csv" #"D:/sharedfolder/first5/wearcodes.csv"
+datadir = "/media/sf_VBox_Shared/London/raw/next161/meta/raw" #"D:/sharedfolder/first5/output_first5/meta/raw" #"D:/dropbox/Dropbox/Accelerometry/GGIR/development/output_Millenium dress rehearsal/meta/raw"
+
+outputdir= "/media/sf_VBox_Shared/London/raw/next161" #"D:/sharedfolder/first5" #Name directory where output needs to be stored
+studyname="next161"  #name of study, only needed if datadir is a list of filenames
+selectdaysfile = "/media/sf_VBox_Shared/London/raw/next161/wearcodes.csv" #"D:/sharedfolder/first5/wearcodes.csv"
 
 #=====================================================================================
 # load functions from functions folder (replace by require(GGIR) once package is updated)
@@ -29,6 +29,10 @@ library(GGIR)
 # ffnames = dir("functions") # creating list of filenames of scriptfiles to load
 # for (i in 1:length(ffnames)) {
 #   source(paste("functions/",ffnames[i],sep="")) #loading scripts for reading geneactiv data
+# }
+# ffnames5 = dir("functions_part5") # creating list of filenames of scriptfiles to load
+# for (i in 1:length(ffnames5)) {
+#   source(paste("functions_part5/",ffnames5[i],sep="")) #loading scripts for reading geneactiv data
 # }
 # ffnames = dir("functions_cls") # creating list of filenames of scriptfiles to load
 # for (i in 1:length(ffnames)) {
@@ -53,7 +57,7 @@ g.shell.GGIR(#=======================================
   csv.struc=c(), #csv.struc=c(5,6), #
   do.imp=TRUE, # Do imputation? (recommended)
   idloc=1, #id location (1 = file header, 2 = filename)
-  print.filename=TRUE,
+  print.filename=FALSE,
   storefolderstructure = FALSE,
   selectdaysfile=selectdaysfile,
   # diaryfile=diaryfile,
@@ -71,7 +75,7 @@ g.shell.GGIR(#=======================================
   desiredtz = "Europe/London",
   printsummary=TRUE,
   minloadcrit=48,
-  epochvalues2csv = TRUE,
+  epochvalues2csv = FALSE,
   #-------------------------------
   # Part 2 parameters:
   #-------------------------------
@@ -93,14 +97,12 @@ g.shell.GGIR(#=======================================
   dayborder = 4, # dayborder is the hour at which one day becomes the next day
   mvpa.2014 = TRUE,
   closedbout=FALSE,
-  
   #-----------------------------------
   # Report generation
   #-------------------------------
   # Key functions: Generating reports based on meta-data
   do.report=c(2), #for what parts does and report need to be generated?)
-  visualreport = FALSE,
-  useRDA = FALSE) 
+  visualreport = FALSE) 
 
 fnsh <- Sys.time()
 
