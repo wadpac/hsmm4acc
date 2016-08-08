@@ -86,7 +86,7 @@ def load_data(binfile, day, filepath):
     filename_csv = binfile + '_day' + str(day) + '.csv'
     filename = filepath + filename_csv
     try:
-        data = pd.read_csv(filename, index_col='timestamp', parse_dates=True)
+        data = pd.read_csv(filename, index_col='timestamp', parse_dates=[0], date_parser=dateutil.parser.parse, infer_datetime_format=True)
         data = data.dropna()
         data['filename'] = binfile + '_day' + str(day)
         result = data
@@ -97,7 +97,7 @@ def load_data(binfile, day, filepath):
 
 def add_annotations(df, binfile, day, annotations_group):
     firsttime = df.index[0]
-    if firsttime.tz_localize('UTC') != min(annotations_group.start_time) :
+    if firsttime != min(annotations_group.start_time): #firsttime.tz_localize('UTC') != min(annotations_group.start_time) :
         print('starttime of data does not correspond with starttime of annotations!')
         print(firsttime, min(annotations_group.start_time))
     # Add slot column to df
@@ -124,10 +124,65 @@ def process_data(annotations_codes, filepath):
             dfs[(binfile, day)] = df
     return dfs
 
+def save_merged(dfs, merged_path):
+    if not os.path.exists(merged_path):
+        os.makedirs(merged_path)
+    for binfile, day in dfs.keys():
+        df = dfs[(binfile, day)]
+        df.to_csv(os.path.join(merged_path, binfile + '_day' + str(day) + '.csv'))
+
+def take_subsequences(dfs):
+    subsets = {}
+    for binfile, day in dfs.keys():
+        dataset = dfs[(binfile, day)]
+        invalids = [1] + list(dataset['invalid']) + [1]
+        starts = [i for i in range(1, len(invalids) - 1) if invalids[i - 1] == 1 and invalids[i] == 0]
+        ends = [i for i in range(1, len(invalids)) if invalids[i - 1] == 0 and invalids[i] == 1]
+        dataset['subset'] = -1
+        for i, (s, e) in enumerate(zip(starts, ends)):
+            # Some minimum length
+            if e - s > 300:
+                dataset.loc[s - 1:e - 1, 'subset'] = i
+                subsets[(binfile, day, i)] = (dataset[s - 1:e - 1].copy())
+    return subsets
+
+def save_subsequences(subsets, subsets_path):
+    if not os.path.exists(subsets_path):
+        os.makedirs(subsets_path)
+    for i, dat in enumerate(subsets.values()):
+        fn = str(str(dat['subset'][0]) + dat['filename'][0]) + '.csv'
+        dat.to_csv(os.path.join(subsets_path, fn))
+
+def switch_positions(dfs):
+    switch_columns = ['anglex', 'angley', 'roll_med_acc_x', 'roll_med_acc_y', 'dev_roll_med_acc_x',
+                      'dev_roll_med_acc_y']
+    for dataset in dfs.values():
+        dataset['switched_pos'] = False
+        non_sleeping_indices = dataset['act'] != 1.0
+        non_sleeping = dataset[non_sleeping_indices]
+        if not non_sleeping.empty:
+            # in the 'correct' orientation, anglex should be mostly negative
+            med_x = np.median(non_sleeping['anglex'])
+            if med_x > 0:
+                for c in switch_columns:
+                    dataset[c] *= -1
+                dataset['switched_pos'] = True
+                print('switched dataset with median %f'%med_x)
+    return dfs
+
 if __name__ == "__main__":
     import sys
-    file_paths = sys.argv[1]
+    file_path = sys.argv[1]
     annotations_path = sys.argv[2]
     wearcodes_path = sys.argv[3]
+    if len(sys.argv)>4:
+        output_path = sys.argv[4]
+    else:
+        output_path = os.path.join(file_path)
     annotations = process_annotations(annotations_path)
     annotations_codes = join_wearcodes(wearcodes_path, annotations)
+    dfs = process_data(annotations_codes, file_path)
+    save_merged(dfs, os.path.join(output_path, 'merged/'))
+    subsets = take_subsequences(dfs)
+    subsets = switch_positions(subsets)
+    save_subsequences(subsets, os.path.join(output_path, 'subsets/'))
