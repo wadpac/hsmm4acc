@@ -165,7 +165,8 @@ def switch_positions(dfs):
             med_x = np.median(non_sleeping['anglex'])
             if med_x > 0:
                 for c in switch_columns:
-                    dataset[c] *= -1
+                    if c in dataset.keys():
+                        dataset[c] *= -1
                 dataset['switched_pos'] = True
                 print('switched dataset with median %f'%med_x)
     return dfs
@@ -179,10 +180,17 @@ if __name__ == "__main__":
         output_path = sys.argv[4]
     else:
         output_path = os.path.join(file_path)
+    print('Process annotations...')
     annotations = process_annotations(annotations_path)
+    print('Join wearcodes...')
     annotations_codes = join_wearcodes(wearcodes_path, annotations)
+    print('Process data...')
     dfs = process_data(annotations_codes, file_path)
+    print('Save merged...')
     save_merged(dfs, os.path.join(output_path, 'merged/'))
+    print('Take subsequences...')
     subsets = take_subsequences(dfs)
+    print('Switch positions...')
     subsets = switch_positions(subsets)
+    print('Save subsequences...')
     save_subsequences(subsets, os.path.join(output_path, 'subsets/'))

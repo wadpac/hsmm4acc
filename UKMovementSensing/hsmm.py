@@ -131,7 +131,7 @@ def plot_observations(X, dim0, dim1, model, hidden_states, num_states):
 
 
 def get_color_map(num_states):
-    colours = plt.cm.rainbow(np.linspace(0, 1, num_states))
+    colours = plt.cm.gist_rainbow(np.linspace(0, 1, num_states))
     colormap = {i: colours[i] for i in range(num_states)}
     cmap = LinearSegmentedColormap.from_list('name',
                                              colormap.values(),

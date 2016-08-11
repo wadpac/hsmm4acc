@@ -24,5 +24,5 @@ states_path = os.path.join(data_root_path,'datawithstates')
 ####################
 column_names = ['anglex', 'angley', 'anglez', 'acceleration']
 Nmax = 4
-nr_resamples = 2 #15
+nr_resamples = 10 #15
 truncate = 600
