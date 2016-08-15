@@ -1,3 +1,4 @@
+from __future__ import print_function
 import pyhsmm
 import pyhsmm.basic.distributions as distributions
 import numpy as np
@@ -37,6 +38,7 @@ def train_hsmm(X_list, Nmax=10, nr_resamples=10, trunc=600, visualize=True, exam
     dim = X_list[0].shape[1]
     model = initialize_model(Nmax, dim)
     model_dists = []
+    prevstates = [np.zeros((X.shape[0])) for X in X_list]
     if visualize:
         fig, axes = plt.subplots(nr_resamples, figsize=(15, 5))
     for X in X_list:
@@ -51,6 +53,10 @@ def train_hsmm(X_list, Nmax=10, nr_resamples=10, trunc=600, visualize=True, exam
             print(idx)
             print('Resampled {} sequences in {:.1f} seconds'.format(len(X_list), t_end - t_start))
             print('Log likelihood: ', model.log_likelihood())
+            newstates = model.stateseqs
+            hamdis = np.mean([np.mean(a!=b) for a,b in zip(prevstates, newstates)])
+            print('Convergence: average Hamming distance is', hamdis)
+            prevstates = newstates
             model.plot_stateseq(example_index, ax=axes[idx])
             plot_observations(X_list[example_index], 0, 1, model,
                               model.stateseqs[example_index], Nmax)
