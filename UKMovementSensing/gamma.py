@@ -1,3 +1,5 @@
+from __future__ import division
+from past.utils import old_div
 import pybasicbayes
 import numpy as np
 from scipy import special
@@ -62,9 +64,9 @@ class GammaFixedRate(
                                       - self.b_0 * np.log(special.gamma(alpha))
         likelihood = lambda alpha: np.exp(loglikelihood(alpha))
         stop = 15
-        alpha_space = np.linspace(0, stop, num=stop / 0.001)
+        alpha_space = np.linspace(0, stop, num=old_div(stop, 0.001))
         alpha_dist = likelihood(alpha_space)
-        alpha_dist = alpha_dist / alpha_dist.sum()
+        alpha_dist = old_div(alpha_dist, alpha_dist.sum())
         return np.random.choice(a=alpha_space, p=alpha_dist, size=n)
 
     def expected_log_likelihood(self, x):

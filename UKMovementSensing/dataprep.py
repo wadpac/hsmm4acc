@@ -1,4 +1,9 @@
 from __future__ import print_function
+from __future__ import division
+from builtins import zip
+from builtins import str
+from builtins import range
+from past.utils import old_div
 
 import pandas as pd
 import dateutil.parser
@@ -36,7 +41,7 @@ def process_annotations(annotations_path):
 
     #sort on measure day and time slot
     annotations = annotations.sort_values(['serflag', 'tud_day', 'Slot'])
-    annotations.index = range(annotations.shape[0])
+    annotations.index = list(range(annotations.shape[0]))
 
     # Check if the differences between start and end is always 10 minutes
     differences = (annotations['end_time'] - annotations['start_time'])
@@ -102,7 +107,7 @@ def add_annotations(df, binfile, day, annotations_group):
     #    print(firsttime, min(annotations_group.start_time))
     # Add slot column to df
     df['Slot'] = df.index - firsttime
-    df['Slot'] = [int(np.floor(s.total_seconds() / 600)) + 1 for s in df['Slot']]
+    df['Slot'] = [int(np.floor(old_div(s.total_seconds(), 600))) + 1 for s in df['Slot']]
     if(len(df.Slot.unique())<144):
         print('Warning: only %d slots'%len(df.Slot.unique()))
     df_annotated = pd.merge(df, annotations_group[['Slot', 'act', 'act_label', 'start_time']], on='Slot', how='left')
@@ -127,13 +132,13 @@ def process_data(annotations_codes, filepath):
 def save_merged(dfs, merged_path):
     if not os.path.exists(merged_path):
         os.makedirs(merged_path)
-    for binfile, day in dfs.keys():
+    for binfile, day in list(dfs.keys()):
         df = dfs[(binfile, day)]
         df.to_csv(os.path.join(merged_path, binfile + '_day' + str(day) + '.csv'))
 
 def take_subsequences(dfs):
     subsets = {}
-    for binfile, day in dfs.keys():
+    for binfile, day in list(dfs.keys()):
         dataset = dfs[(binfile, day)]
         invalids = [1] + list(dataset['invalid']) + [1]
         starts = [i for i in range(1, len(invalids) - 1) if invalids[i - 1] == 1 and invalids[i] == 0]
@@ -156,7 +161,7 @@ def save_subsequences(subsets, subsets_path):
 def switch_positions(dfs):
     switch_columns = ['anglex', 'angley', 'roll_med_acc_x', 'roll_med_acc_y', 'dev_roll_med_acc_x',
                       'dev_roll_med_acc_y']
-    for dataset in dfs.values():
+    for dataset in list(dfs.values()):
         dataset['switched_pos'] = False
         non_sleeping_indices = dataset['act'] != 1.0
         non_sleeping = dataset[non_sleeping_indices]
@@ -165,7 +170,7 @@ def switch_positions(dfs):
             med_x = np.median(non_sleeping['anglex'])
             if med_x > 0:
                 for c in switch_columns:
-                    if c in dataset.keys():
+                    if c in list(dataset.keys()):
                         dataset[c] *= -1
                 dataset['switched_pos'] = True
                 print('switched dataset with median %f'%med_x)

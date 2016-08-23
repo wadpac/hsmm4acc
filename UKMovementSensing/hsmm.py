@@ -1,10 +1,14 @@
 from __future__ import print_function
+from builtins import str
+from builtins import zip
+from builtins import range
 import pyhsmm
 import pyhsmm.basic.distributions as distributions
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.colors import LinearSegmentedColormap
 from pybasicbayes.util.plot import plot_gaussian_2D
+from pyhsmm.util.general import rle
 from time import clock
 import copy
 
@@ -43,7 +47,7 @@ def train_hsmm(X_list, Nmax=10, nr_resamples=10, trunc=600, visualize=True, exam
         fig, axes = plt.subplots(nr_resamples, figsize=(15, 5))
     for X in X_list:
         model.add_data(X, trunc=trunc)
-    for idx in xrange(nr_resamples):
+    for idx in range(nr_resamples):
         t_start = clock()
         # model_copy = model.resample_and_copy()
         model.resample_model()
@@ -137,10 +141,10 @@ def plot_observations(X, dim0, dim1, model, hidden_states, num_states):
 
 
 def get_color_map(num_states):
-    colours = plt.cm.gist_rainbow(np.linspace(0, 1, num_states))
+    colours = plt.cm.viridis(np.linspace(0, 1, num_states))
     colormap = {i: colours[i] for i in range(num_states)}
     cmap = LinearSegmentedColormap.from_list('name',
-                                             colormap.values(),
+                                             list(colormap.values()),
                                              num_states)
     return colormap, cmap
 
@@ -237,6 +241,44 @@ def plot_states_and_var(data, hidden_states, cmap=None, columns=None, by='Activi
         ticks=np.arange(np.min(hidden_states),
                         np.max(hidden_states) + 1))
 
+def plot_states_and_var_new(data, hidden_states, cmap=None, columns=None, by='Activity'):
+    """
+    Make  a plot of the data and the states
+
+    Parameters
+    ----------
+    data : pandas DataFrame
+        Data to plot
+    hidden_states: iteretable
+        the hidden states corresponding to the timesteps
+    columns : list, optional
+        Which columns to plot
+    by : str
+        The column to group on
+    """
+    fig, ax = plt.subplots(figsize=(15, 5))
+    if columns is None:
+        columns = data.columns
+    df = data[columns].copy()
+    stateseq = np.array(hidden_states)
+    actseq = np.array(data[by])
+    stateseq_norep, durations = rle(stateseq)
+    datamin, datamax = np.array(df).min(), np.array(df).max()
+    x, y = np.hstack((0, durations.cumsum())), np.array([datamin, datamax])
+    maxstate = stateseq.max() + 1
+    C = np.array(
+        [[float(state) / maxstate] for state in stateseq_norep]).transpose()
+    ax.set_xlim((0, len(hidden_states)))
+    df.plot(ax=ax)
+    ax.pcolorfast(x, y, C, vmin=0, vmax=1, alpha=0.3, cmap=cmap)
+    # Plot the activities
+    sca = ax.scatter(
+        data.index,
+        np.ones_like(hidden_states) * datamax,
+        c=actseq,
+        edgecolors='none'
+    )
+    plt.show()
 
 def plot_heatmap(plotdata, horizontal_labels=None, vertical_labels=None, form='{:.4}'):
     """
@@ -257,10 +299,10 @@ def plot_heatmap(plotdata, horizontal_labels=None, vertical_labels=None, form='{
     ax.set_xticks(np.arange(plotdata.shape[1]) + 0.5, minor=False)
     ax.set_yticks(np.arange(plotdata.shape[0]) + 0.5, minor=False)
     if horizontal_labels is None:
-        horizontal_labels = range(plotdata.shape[1])
+        horizontal_labels = list(range(plotdata.shape[1]))
     ax.set_xticklabels(horizontal_labels, minor=False)
     if vertical_labels is None:
-        vertical_labels = range(plotdata.shape[0])
+        vertical_labels = list(range(plotdata.shape[0]))
     ax.set_yticklabels(vertical_labels, minor=False)
     plt.colorbar(colorplot)
     for y in range(plotdata.shape[0]):
