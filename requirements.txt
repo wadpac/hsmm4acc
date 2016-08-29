@@ -4,6 +4,8 @@ numpy
 scipy
 cython
 pandas
+stats
+future
 matplotlib
 pyhsmm
 pybasicbayes

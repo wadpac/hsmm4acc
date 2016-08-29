@@ -32,6 +32,18 @@ def remove_invalid_annotations(annotations):
 
 
 def process_annotations(annotations_path):
+    """
+    Read the TUD annotations files
+    Parameters
+    ----------
+    annotations_path : str
+        Path to TUD file
+
+    Returns
+    -------
+    Pandas dataframe with annotations
+
+    """
     annotations = pd.read_csv(annotations_path)
     annotations = remove_invalid_annotations(annotations)
 
@@ -39,7 +51,7 @@ def process_annotations(annotations_path):
     annotations['start_time'] = [parse_time(s) for s in annotations['start_time']]
     annotations['end_time'] = [parse_time(s) for s in annotations['end_time']]
 
-    #sort on measure day and time slot
+    # Sort on measure day and time slot
     annotations = annotations.sort_values(['serflag', 'tud_day', 'Slot'])
     annotations.index = list(range(annotations.shape[0]))
 
@@ -61,7 +73,7 @@ def process_annotations(annotations_path):
         print(byslot_endtime.unique()[multiple_endtime.index].head(10))
     annotations.drop('end_time_time', 1, inplace=True)
 
-    #Check if each day has exactly 144 time slots
+    # Check if each day has exactly 144 time slots
     nrslots = annotations.groupby(['serflag', 'tud_day']).Slot.nunique()
     if not np.alltrue(nrslots == 144):
         print('Not all days have 144 slots! first 5:')
@@ -70,7 +82,24 @@ def process_annotations(annotations_path):
 
     return annotations
 
+
 def join_wearcodes(wearcodes_path, annotations):
+    """
+    Joins the annotations with the wearcodes.
+
+    Parameters
+    ----------
+    wearcodes_path : str
+        path to the file with wearcodes
+    annotations : pandas dataframe
+        Dataframe with the annotations (output from process_annotations)
+
+    Returns
+    -------
+    Pandas Dataframe with annotations and wearcodes
+
+    """
+
     # Read in the wearcodes
     wearcodes = pd.read_csv(wearcodes_path)
     wearcodes['Day1'] = [datetime.datetime.strptime(s, '%d/%m/%Y') for s in wearcodes['Day1']]
@@ -86,7 +115,26 @@ def join_wearcodes(wearcodes_path, annotations):
 
     return annotations_codes
 
+
 def load_data(binfile, day, filepath):
+    """
+    Loads the (5-second aggregated) accelerometer data.
+    The path to the file is: `[filepath]/[binfile]_[day].csv`
+
+    Parameters
+    ----------
+    binfile : str
+        Name of the original binary file (from wearcodes)
+    day : int
+        Day (1 or 2)
+    filepath
+        directory where the file is located
+
+    Returns
+    -------
+    Pandas Dataframe with accelerometer data
+
+    """
     result = None
     filename_csv = binfile + '_day' + str(day) + '.csv'
     filename = filepath + filename_csv
@@ -100,7 +148,26 @@ def load_data(binfile, day, filepath):
         return None
     return result
 
+
 def add_annotations(df, binfile, day, annotations_group):
+    """
+    Add annotations to accelerometer data.
+
+    Parameters
+    ----------
+    df : Pandas DataFrame
+        Accelerometer data
+    binfile : str
+        Name of original binary file (from wearcodes)
+    day
+        Day (1 or 2)
+    annotations_group
+        Annotations for this specific binfile and day
+
+    Returns
+    -------
+    Pandas DataFrame with accelerometer data and annotations.
+    """
     firsttime = df.index[0]
     #if firsttime != min(annotations_group.start_time): #firsttime.tz_localize('UTC') != min(annotations_group.start_time) :
     #    print('starttime of data does not correspond with starttime of annotations!')
@@ -114,7 +181,23 @@ def add_annotations(df, binfile, day, annotations_group):
     df_annotated.index = df.index
     return df_annotated
 
+
 def process_data(annotations_codes, filepath):
+    """
+    Load all accelerometer data in the specified directory,
+    and join with annotations.
+
+    Parameters
+    ----------
+    annotations_codes : Pandas DataFrame
+        DataFrame with annotations and wearcodes (result from join_wearcodes)
+    filepath : str
+        Directory of the accelerometer data files
+
+    Returns
+    -------
+    dict holding all the merged dataframe
+    """
     byName = annotations_codes.groupby(['binFile', 'tud_day'])
     dfs = {}
     for (binfile, day), fileAnnotations in byName:
@@ -129,14 +212,75 @@ def process_data(annotations_codes, filepath):
             dfs[(binfile, day)] = df
     return dfs
 
+
+def process_data_onebyone(annotations_codes, filepath,  subsets_path):
+    """
+    Process the accelerometer files one-by-one.
+    Joins them with the annotations, creates subsequences, switches position
+    and writes the data to the output path.
+
+    Parameters
+    ----------
+    annotations_codes : Pandas DataFrame
+        Annotations joined with wearcodes (output from join_wearcodes)
+    filepath
+    subsets_path
+    """
+    byName = annotations_codes.groupby(['binFile', 'tud_day'])
+    for (binfile, day), fileAnnotations in byName:
+        dfs = {}
+        annotations_group = byName.get_group((binfile, day))
+
+        # Load data
+        df = load_data(binfile, day, filepath)
+        if df is not None:
+            # Add annotations:
+            df = add_annotations(df, binfile, day, annotations_group)
+            # Keep all data frames
+            dfs[(binfile, day)] = df
+
+            # Take subsequences
+            subsets = take_subsequences(dfs)
+
+            # Switch positions
+            subsets_switched = switch_positions(subsets)
+
+            # Save file
+            save_subsequences(subsets, subsets_path)
+
+
 def save_merged(dfs, merged_path):
+    """
+    Save the merged data.
+
+    Parameters
+    ----------
+    dfs : dict
+        dict holding all the merged dataframes (result from process_data)
+    merged_path : str
+        directory to store the files
+    """
     if not os.path.exists(merged_path):
         os.makedirs(merged_path)
     for binfile, day in list(dfs.keys()):
         df = dfs[(binfile, day)]
         df.to_csv(os.path.join(merged_path, binfile + '_day' + str(day) + '.csv'))
 
+
 def take_subsequences(dfs):
+    """
+    Make subsequences of the data that are completely valid.
+
+    Parameters
+    ----------
+    dfs : dict
+        dict holding all the merged dataframes (result from process_data)
+
+    Returns
+    -------
+    dict holding all the subsequences
+
+    """
     subsets = {}
     for binfile, day in list(dfs.keys()):
         dataset = dfs[(binfile, day)]
@@ -151,14 +295,41 @@ def take_subsequences(dfs):
                 subsets[(binfile, day, i)] = (dataset[s - 1:e - 1].copy())
     return subsets
 
+
 def save_subsequences(subsets, subsets_path):
+    """
+    Save the subsequences to the path: `[subsets_path]/[filename].csv`
+
+    Parameters
+    ----------
+    subsets : dict
+        Dict holding the dataframes of the subsequences
+    subsets_path : str
+        Directory to store the outputs
+    """
     if not os.path.exists(subsets_path):
         os.makedirs(subsets_path)
     for i, dat in enumerate(subsets.values()):
         fn = str(str(dat['subset'][0]) + dat['filename'][0]) + '.csv'
         dat.to_csv(os.path.join(subsets_path, fn))
 
+
 def switch_positions(dfs):
+    """
+    Check the orientation position, and switch if necessary.
+    The orientation is switched if the median of the x-angle is larger than 0.
+    In this case, the x-angle and y-angle are mirrored.
+
+    Parameters
+    ----------
+    dfs : dict
+        Dict holding the dataframes of the sequences
+
+    Returns
+    -------
+    Switched Dataframes
+
+    """
     switch_columns = ['anglex', 'angley', 'roll_med_acc_x', 'roll_med_acc_y', 'dev_roll_med_acc_x',
                       'dev_roll_med_acc_y']
     for dataset in list(dfs.values()):
@@ -175,6 +346,7 @@ def switch_positions(dfs):
                 dataset['switched_pos'] = True
                 print('switched dataset with median %f'%med_x)
     return dfs
+
 
 if __name__ == "__main__":
     import sys

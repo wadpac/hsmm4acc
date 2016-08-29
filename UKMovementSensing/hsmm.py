@@ -13,7 +13,8 @@ from time import clock
 import copy
 
 
-def train_hsmm(X_list, Nmax=10, nr_resamples=10, trunc=600, visualize=True, example_index=0):
+def train_hsmm(X_list, Nmax=10, nr_resamples=10, trunc=600, visualize=True,
+               example_index=0, max_hamming=0.05):
     """
     Fit an Hidden Semi Markov Model on a list of sequences.
 
@@ -62,8 +63,11 @@ def train_hsmm(X_list, Nmax=10, nr_resamples=10, trunc=600, visualize=True, exam
             print('Convergence: average Hamming distance is', hamdis)
             prevstates = newstates
             model.plot_stateseq(example_index, ax=axes[idx])
-            plot_observations(X_list[example_index], 0, 1, model,
+            if(X_list[example_index].shape[1]>1):
+                plot_observations(X_list[example_index], 0, 1, model,
                               model.stateseqs[example_index], Nmax)
+            if hamdis < max_hamming:
+                return model, model_dists
     return model, model_dists
 
 
@@ -150,7 +154,7 @@ def get_color_map(num_states):
 
 
 def plot_boxplots(data, hidden_states):
-    '''
+    """
     Plot boxplots for all variables in the dataset, per state
 
     Parameters
@@ -159,7 +163,7 @@ def plot_boxplots(data, hidden_states):
         Data to plot
     hidden_states: iteretable
         the hidden states corresponding to the timesteps
-    '''
+    """
     column_names = data.columns
     figs, axes = plt.subplots(len(column_names), figsize=(15, 15))
     for j, var in enumerate(column_names):

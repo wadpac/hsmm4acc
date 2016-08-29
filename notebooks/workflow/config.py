@@ -21,6 +21,7 @@ states_path = os.path.join(data_root_path,'datawithstates')
 ########################
 # HSMM settings
 ####################
+#column_names = ['acceleration']
 column_names = ['anglex', 'angley', 'anglez', 'acceleration']
 #column_names = ['roll_med_acc_x', 'roll_med_acc_y', 'roll_med_acc_z', 'dev_roll_med_acc_x', 'dev_roll_med_acc_y', 'dev_roll_med_acc_z']
 
@@ -29,5 +30,6 @@ nr_resamples = 30 #15
 truncate = 600
 
 model_name = 'model_{}states.pkl'.format(Nmax)
+#model_name = 'model_acc_{}states.pkl'.format(Nmax)
 #model_name = 'model_roldev_{}states.pkl'.format(Nmax)
 states_path_model = os.path.join(states_path, model_name)
