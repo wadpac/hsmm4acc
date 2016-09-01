@@ -169,9 +169,10 @@ def add_annotations(df, binfile, day, annotations_group):
     Pandas DataFrame with accelerometer data and annotations.
     """
     firsttime = df.index[0]
-    #if firsttime != min(annotations_group.start_time): #firsttime.tz_localize('UTC') != min(annotations_group.start_time) :
-    #    print('starttime of data does not correspond with starttime of annotations!')
-    #    print(firsttime, min(annotations_group.start_time))
+    # Check if start time of annotations corresponds with start time of accelerometer data
+    if firsttime != min(annotations_group.start_time): #firsttime.tz_localize('UTC') != min(annotations_group.start_time) :
+       print('starttime of data does not correspond with starttime of annotations!')
+       print(firsttime, min(annotations_group.start_time))
     # Add slot column to df
     df['Slot'] = df.index - firsttime
     df['Slot'] = [int(np.floor(old_div(s.total_seconds(), 600))) + 1 for s in df['Slot']]
