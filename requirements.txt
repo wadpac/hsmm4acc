@@ -1,10 +1,9 @@
-nose
-sphinx
 numpy
 scipy
+nose
+sphinx
 cython
 pandas
-stats
 future
 matplotlib
 pyhsmm
