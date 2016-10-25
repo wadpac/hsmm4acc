@@ -8,10 +8,12 @@ Prerequisites:
 * cython. When using conda, you should install cython through conda instead of pip
 
 Open a command line and navigate to the root of this repository. To install, try:
+
 `pip install .`
 
 To run tests:
-`nosetests tests/`
+
+`nosetests test/`
 
 ## Running the workflow
 If you have data that is preprocessed by the R-package GGIR, you can use the ipython-workflow to process it.
