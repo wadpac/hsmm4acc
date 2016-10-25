@@ -25,10 +25,14 @@ states_path = os.path.join(data_root_path,'datawithstates')
 column_names = ['anglex', 'angley', 'anglez', 'acceleration']
 #column_names = ['roll_med_acc_x', 'roll_med_acc_y', 'roll_med_acc_z', 'dev_roll_med_acc_x', 'dev_roll_med_acc_y', 'dev_roll_med_acc_z']
 
+# Maximum number of states
 Nmax = 4
+# Number of resamples to train the model. With more data, you need fewer resamples to converge.
 nr_resamples = 30 #15
+# Maximum duration of one state (in nr of 5-second intervals). A smaller number speeds up the calculations significantly
 truncate = 600
 
+# The name under which your model is saved
 model_name = 'model_{}states.pkl'.format(Nmax)
 #model_name = 'model_acc_{}states.pkl'.format(Nmax)
 #model_name = 'model_roldev_{}states.pkl'.format(Nmax)

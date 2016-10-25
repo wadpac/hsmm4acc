@@ -12,3 +12,7 @@ Open a command line and navigate to the root of this repository. To install, try
 
 To run tests:
 `nosetests tests/`
+
+## Running the workflow
+If you have data that is preprocessed by the R-package GGIR, you can use the ipython-workflow to process it.
+Configure the `config.py` for your settings. 
