@@ -73,7 +73,7 @@ def train_hsmm(X_list, Nmax=10, nr_resamples=10, trunc=600, visualize=True,
 
 def initialize_model(Nmax, dim):
     """
-    Fit an Hidden Semi Markov Model on a list of sequences.
+    Initialize a HSMM model.
 
     Parameters
     ------
@@ -265,10 +265,10 @@ def plot_states_and_var_new(data, hidden_states, cmap=None, columns=None, by='Ac
         columns = data.columns
     df = data[columns].copy()
     stateseq = np.array(hidden_states)
-    actseq = np.array(data[by])
     stateseq_norep, durations = rle(stateseq)
     datamin, datamax = np.array(df).min(), np.array(df).max()
-    x, y = np.hstack((0, durations.cumsum())), np.array([datamin, datamax])
+    indexmin = np.array(df.index).min()
+    x, y = np.hstack((indexmin, durations.cumsum()+indexmin)), np.array([datamin, datamax])
     maxstate = stateseq.max() + 1
     C = np.array(
         [[float(state) / maxstate] for state in stateseq_norep]).transpose()
@@ -276,12 +276,14 @@ def plot_states_and_var_new(data, hidden_states, cmap=None, columns=None, by='Ac
     df.plot(ax=ax)
     ax.pcolorfast(x, y, C, vmin=0, vmax=1, alpha=0.3, cmap=cmap)
     # Plot the activities
-    sca = ax.scatter(
-        data.index,
-        np.ones_like(hidden_states) * datamax,
-        c=actseq,
-        edgecolors='none'
-    )
+    if by is not None:
+        actseq = np.array(data[by])
+        sca = ax.scatter(
+            data.index,
+            np.ones_like(hidden_states) * datamax,
+            c=actseq,
+            edgecolors='none'
+        )
     plt.show()
 
 def plot_heatmap(plotdata, horizontal_labels=None, vertical_labels=None, form='{:.4}'):
