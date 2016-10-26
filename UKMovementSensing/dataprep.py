@@ -33,7 +33,7 @@ def remove_invalid_annotations(annotations):
 
 def process_annotations(annotations_path):
     """
-    Read the TUD annotations files
+    Read the time use diary (TUD) annotations file as stored in csv format
     Parameters
     ----------
     annotations_path : str
@@ -85,7 +85,8 @@ def process_annotations(annotations_path):
 
 def join_wearcodes(wearcodes_path, annotations):
     """
-    Joins the annotations with the wearcodes.
+    Joins the annotations with the wearcodes. The wearcodes are the dates on
+    which an accelerometer was supposed to be worn
 
     Parameters
     ----------
@@ -120,6 +121,8 @@ def load_data(binfile, day, filepath):
     """
     Loads the (5-second aggregated) accelerometer data.
     The path to the file is: `[filepath]/[binfile]_[day].csv`
+    Here, binfile refers to the binary accelerometer data data from which
+    the 5-second accelerometer data (csv) was created.
 
     Parameters
     ----------
@@ -218,7 +221,7 @@ def process_data_onebyone(annotations_codes, filepath,  subsets_path):
     """
     Process the accelerometer files one-by-one.
     Joins them with the annotations, creates subsequences, switches position
-    and writes the data to the output path.
+    and writes the data to the output path defined in argument subsets_path.
 
     Parameters
     ----------
