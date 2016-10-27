@@ -28,6 +28,9 @@ activities_simplified_path = os.path.join(data_root_path, 'TUD_simplified.csv')
 column_names = ['anglex', 'angley', 'anglez', 'acceleration']
 #column_names = ['roll_med_acc_x', 'roll_med_acc_y', 'roll_med_acc_z', 'dev_roll_med_acc_x', 'dev_roll_med_acc_y', 'dev_roll_med_acc_z']
 
+#For 1b_HSSM_batches:
+batch_size = 10
+
 # Maximum number of states
 Nmax = 4
 # Number of resamples to train the model. With more data, you need fewer resamples to converge.

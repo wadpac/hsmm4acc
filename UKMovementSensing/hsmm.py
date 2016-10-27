@@ -11,6 +11,7 @@ from pybasicbayes.util.plot import plot_gaussian_2D
 from pyhsmm.util.general import rle
 from time import clock
 import copy
+import pandas as pd
 
 
 def train_hsmm(X_list, Nmax=10, nr_resamples=10, trunc=600, visualize=True,
@@ -30,8 +31,11 @@ def train_hsmm(X_list, Nmax=10, nr_resamples=10, trunc=600, visualize=True,
         Maximum duration of a state, for optimization
     visualize : bool, optional
         Option to show plots during the process
-    example_index: int, optional
+    example_index : int, optional
         Which of the sequences to use as an example for plotting
+    max_hamming : float, optional
+        Terminates when hamming distance between consecutive state sequences
+        is smaller then this number.
 
     Returns
     ------
@@ -69,6 +73,132 @@ def train_hsmm(X_list, Nmax=10, nr_resamples=10, trunc=600, visualize=True,
             if hamdis < max_hamming:
                 return model, model_dists
     return model, model_dists
+
+
+def read_data(filename, column_names):
+    data = pd.read_csv(filename)
+    X = data[column_names].as_matrix()
+    return X
+
+
+def iterate_hsmm_batch(X_list, model, current_states, trunc,
+                       example_index=None, axis=None):
+    # First time, the states need to be initalized:
+    """
+
+    Parameters
+    ----------
+    X_list : list of Numpy arrays
+        The sequences of shape (num_timesteps, num_channels)
+    model : pyhsmm model
+        The HSMM model
+    current_states : list of arrays
+        The resulting statesequences of previous iteration
+    trunc : int, optional
+        Maximum duration of a state, for optimization
+    example_index : int, optional
+        Which of the sequences to use as an example for plotting
+    axis : pyplot Axis
+        axis to plot the example sequence
+
+    Returns
+    -------
+
+    """
+    if current_states is None:
+        current_states = [np.zeros((X.shape[0])) for X in X_list]
+        for X in X_list:
+            model.add_data(X, trunc=trunc)
+    else:
+        for i, X in enumerate(X_list):
+            model.add_data(X, stateseq=current_states[i], trunc=trunc)
+    model.resample_model()
+    newstates = model.stateseqs
+    hamdis = [np.mean(a != b) for a, b in zip(current_states, newstates)]
+
+    # Visualize
+    if example_index is not None:
+        model.plot_stateseq(example_index, ax=axis)
+
+    model.states_list = []
+    return model, hamdis, newstates
+
+
+def train_hsmm_all(filenames, column_names, batchsize=10, Nmax=10,
+                   nr_resamples=10, trunc=600, visualize=True,
+                   example_index=0, max_hamming=0.05):
+    """
+    Fit an Hidden Semi Markov Model a list of files, in batches.
+
+    Parameters
+    ------
+    filenames : list of str
+        List of paths to the csv files
+    column_names : list of str
+        Names of variables to use
+    batchsize : int, optional
+        Number of files to process in one batch
+    Nmax : int, optional
+        Maximum number of states
+    nr_resamples : int, optional
+        Number of times the model is resampled on all data
+    trunc : int, optional
+        Maximum duration of a state, for optimization
+    visualize : bool, optional
+        Option to show plots during the process
+    example_index: int, optional
+        Which of the sequences to use as an example for plotting
+    max_hamming : float, optional
+        Terminates when hamming distance between consecutive state sequences
+        is smaller then this number.
+
+    Returns
+    ------
+    model : pyhsmm model
+        The resampled model
+    model_dists : list of distributions
+        Observation distributions of the states for each sample step
+    """
+    dim = len(column_names)
+    model = initialize_model(Nmax, dim)
+    if visualize:
+        fig, axes = plt.subplots(nr_resamples, figsize=(15, 5))
+
+    # Make batches and keep all states in memory to compute the hamming distance
+    batches = [filenames[i:i + batchsize] for i in
+               range(0, len(filenames), batchsize)]
+    example_batch = np.floor(float(example_index) / len(filenames))
+    example_index = example_index % batchsize
+    print('Nr of batches: ' + str(len(batches)))
+    states = [None for i in range(len(batches))]
+
+    for idx in range(nr_resamples):
+        t_start = clock()
+        hamdis_list = []
+        for i, batch in enumerate(batches):
+            X_list = [read_data(filename, column_names) for filename in batch]
+            visualize_index, axis = (example_index, axes[
+                idx]) if i == example_batch and visualize else (None, None)
+            model, hamdis_sub, newstates = iterate_hsmm_batch(X_list, model,
+                                                              states[i],
+                                                              trunc=trunc,
+                                                              example_index=visualize_index,
+                                                              axis=axis)
+            states[i] = newstates
+            hamdis_list.extend(hamdis_sub)
+        t_end = clock()
+        hamdis = np.mean(hamdis_list)
+
+        if (idx + 1) % 1 == 0 and visualize:
+            print(idx)
+            print('Resampled all sequences in {:.1f} seconds'.format(
+                t_end - t_start))
+            print('Convergence: average Hamming distance is', hamdis)
+
+        # Early convergence:
+        if hamdis < max_hamming:
+            return model
+    return model
 
 
 def initialize_model(Nmax, dim):
