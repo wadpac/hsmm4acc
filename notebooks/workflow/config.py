@@ -18,6 +18,9 @@ subset_path = os.path.join(data_root_path, "subsets/")
 model_path = os.path.join(data_root_path, 'models')
 states_path = os.path.join(data_root_path,'datawithstates')
 
+#For 2_AnalyseResutls
+activities_simplified_path = os.path.join(data_root_path, 'TUD_simplified.csv')
+
 ########################
 # HSMM settings
 ####################
