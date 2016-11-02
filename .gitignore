@@ -3,3 +3,4 @@ doc/build/*
 *coverage*
 notebooks/.ipynb_checkpoints/
 .idea/
+notebooks/workflow/config.py
