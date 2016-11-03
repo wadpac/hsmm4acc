@@ -398,13 +398,19 @@ def plot_states_and_var_new(data, hidden_states, cmap=None, columns=None, by='Ac
     stateseq_norep, durations = rle(stateseq)
     datamin, datamax = np.array(df).min(), np.array(df).max()
     indexmin = np.array(df.index).min()
-    x, y = np.hstack((indexmin, durations.cumsum()+indexmin)), np.array([datamin, datamax])
+    index_step = df.index[1] - df.index[0]
+    y =  np.array(
+        [datamin, datamax])
     maxstate = stateseq.max() + 1
+    x = np.hstack(([0], durations.cumsum()[:-1], [len(df.index) - 1]))
     C = np.array(
         [[float(state) / maxstate] for state in stateseq_norep]).transpose()
-    ax.set_xlim((0, len(hidden_states)))
-    df.plot(ax=ax)
+    ax.set_xlim((min(x), max(x)))
     ax.pcolorfast(x, y, C, vmin=0, vmax=1, alpha=0.3, cmap=cmap)
+    plt.plot(df.as_matrix())
+    ticks = np.arange(0, len(df.index), 12 * 60)
+    plt.xticks(ticks, df.index.strftime('%H:%M')[ticks], rotation='vertical')
+    #ax.pcolorfast(x, y, C, vmin=0, vmax=1, alpha=0.3, cmap=cmap)
     # Plot the activities
     if by is not None:
         actseq = np.array(data[by])
