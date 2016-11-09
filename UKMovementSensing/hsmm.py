@@ -422,7 +422,7 @@ def plot_states_and_var_new(data, hidden_states, cmap=None, columns=None, by='Ac
     if by is not None:
         actseq = np.array(data[by])
         sca = ax.scatter(
-            data.index,
+            np.arange(len(hidden_states)), #data.index,
             np.ones_like(hidden_states) * datamax,
             c=actseq,
             edgecolors='none'
