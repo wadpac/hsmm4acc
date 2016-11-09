@@ -12,7 +12,7 @@ from pyhsmm.util.general import rle
 from time import clock
 import copy
 import pandas as pd
-
+from matplotlib.dates import date2num, AutoDateLocator
 
 def train_hsmm(X_list, Nmax=10, nr_resamples=10, trunc=600, visualize=True,
                example_index=0, max_hamming=0.05):
@@ -408,7 +408,11 @@ def plot_states_and_var_new(data, hidden_states, cmap=None, columns=None, by='Ac
     ax.set_xlim((min(x), max(x)))
     pc = ax.pcolorfast(x, y, C, vmin=0, vmax=1, alpha=0.3, cmap=cmap)
     plt.plot(df.as_matrix())
-    ticks = np.arange(0, len(df.index), 12 * 60)
+    locator = AutoDateLocator()
+    locator.create_dummy_axis()
+    num_index = pd.Index(df.index.map(date2num))
+    ticks_num = locator.tick_values(min(df.index), max(df.index))
+    ticks = [num_index.get_loc(t) for t in ticks_num]
     plt.xticks(ticks, df.index.strftime('%H:%M')[ticks], rotation='vertical')
     #ax.pcolorfast(x, y, C, vmin=0, vmax=1, alpha=0.3, cmap=cmap)
     cb = plt.colorbar(pc)
