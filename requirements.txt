@@ -1,10 +1,10 @@
-numpy
+numpy<1.12
 scipy
 nose
 sphinx
 cython
 pandas
 future
-matplotlib
+matplotlib<2.0
 pyhsmm
 pybasicbayes

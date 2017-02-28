@@ -5,12 +5,26 @@ This repository is for the project by NLeSC in collaboration with UCL, of analyz
 Prerequisites:
 *  Python 2.7
 * pip
-* cython. When using conda, you should install cython through conda instead of pip
 
-Open a command line and navigate to the root of this repository. To install, try:
+### Instalation with conda
+Navigate to the root of this repository. Create a conda environment with the environment.yml file:
+ 
+`conda env create -f environment.yml`
+
+Activate the environment:
+
+`source activate ucl`
+
+Then install the package:
 
 `pip install .`
 
+### Installation with pip
+Navigate to the root of this repository. To install, try:
+
+`pip install .`
+
+### Running tests
 To run tests:
 
 `nosetests test/`
