@@ -52,21 +52,21 @@ def process_annotations(annotations_path):
     annotations['end_time'] = [parse_time(s) for s in annotations['end_time']]
 
     # Sort on measure day and time slot
-    annotations = annotations.sort_values(['serflag', 'tud_day', 'Slot'])
+    annotations = annotations.sort_values(['accSmallID', 'day', 'slot'])
     annotations.index = list(range(annotations.shape[0]))
 
     # Check if the differences between start and end is always 10 minutes
-    differences = (annotations['end_time'] - annotations['start_time'])
-    diff_indices = differences != datetime.timedelta(minutes=10)
+    differences = [x - y for x,y in zip(annotations['end_time'], annotations['start_time'])]
+    diff_indices = [x != pd.Timedelta(10, unit='m') for x in differences]
     if sum(diff_indices) > 0:
         # TODO: this should be unnecessary!
         print('Differens between start and end not always 10 minutes! in %d cases. First 10:' % sum(diff_indices))
         print(annotations[diff_indices][['start_time', 'end_time']].head(10))
-        annotations.loc[diff_indices, 'end_time'] = datetime.timedelta(minutes=10) + annotations[diff_indices]['start_time']
+        annotations.loc[diff_indices, 'end_time'] = [pd.Timedelta(10, unit='m') + x for x in annotations[diff_indices]['start_time']]
 
     # Check if every timeslot is associated with exactly one time
     annotations['end_time_time'] = [s.time() for s in annotations['end_time']]
-    byslot_endtime = annotations.groupby(['Slot']).end_time_time
+    byslot_endtime = annotations.groupby(['slot']).end_time_time
     multiple_endtime = (byslot_endtime.nunique() > 1)
     if sum(multiple_endtime)>0:
         print('Multiple end times per slot. first 10:')
@@ -74,11 +74,10 @@ def process_annotations(annotations_path):
     annotations.drop('end_time_time', 1, inplace=True)
 
     # Check if each day has exactly 144 time slots
-    nrslots = annotations.groupby(['serflag', 'tud_day']).Slot.nunique()
+    nrslots = annotations.groupby(['accSmallID', 'day']).slot.nunique()
     if not np.alltrue(nrslots == 144):
         print('Not all days have 144 slots! first 5:')
         print(nrslots[nrslots!=144].head())
-
 
     return annotations
 
@@ -107,11 +106,11 @@ def join_wearcodes(wearcodes_path, annotations):
     wearcodes['Day2'] = [datetime.datetime.strptime(s, '%d/%m/%Y') for s in wearcodes['Day2']]
 
     # Join with annotations
-    annotations_codes = pd.merge(annotations, wearcodes, on='serflag', how='left')
+    annotations_codes = pd.merge(annotations, wearcodes, on='accSmallID', how='left')
 
     # Check if all wearcodes are present
     if(sum(annotations_codes['Monitor'] == None) > 0):
-        print('Some serflags are not present! First 5:')
+        print('Some accSmallIDs are not present! First 5:')
         print(annotations_codes[annotations_codes['Monitor'] == None].head())
 
     return annotations_codes
@@ -180,11 +179,11 @@ def add_annotations(df, binfile, day, annotations_group):
        print('starttime of data does not correspond with starttime of annotations!')
        print(firsttime, min(annotations_group.start_time))
     # Add slot column to df
-    df['Slot'] = df.index - firsttime
-    df['Slot'] = [int(np.floor(old_div(s.total_seconds(), 600))) + 1 for s in df['Slot']]
-    if(len(df.Slot.unique())<144):
-        print('Warning: only %d slots'%len(df.Slot.unique()))
-    df_annotated = pd.merge(df, annotations_group[['Slot', 'act', 'act_label', 'start_time']], on='Slot', how='left')
+    df['slot'] = df.index - firsttime
+    df['slot'] = [int(np.floor(old_div(s.total_seconds(), 600))) + 1 for s in df['slot']]
+    if(len(df.slot.unique())<144):
+        print('Warning: only %d slots'%len(df.slot.unique()))
+    df_annotated = pd.merge(df, annotations_group[['slot', 'activity', 'label', 'start_time']], on='slot', how='left')
     df_annotated.index = df.index
     return df_annotated
 
@@ -205,7 +204,7 @@ def process_data(annotations_codes, filepath):
     -------
     dict holding all the merged dataframe
     """
-    byName = annotations_codes.groupby(['binFile', 'tud_day'])
+    byName = annotations_codes.groupby(['binFile', 'day'])
     dfs = {}
     for (binfile, day), fileAnnotations in byName:
         annotations_group = byName.get_group((binfile, day))
@@ -233,7 +232,7 @@ def process_data_onebyone(annotations_codes, filepath,  subsets_path):
     filepath
     subsets_path
     """
-    byName = annotations_codes.groupby(['binFile', 'tud_day'])
+    byName = annotations_codes.groupby(['binFile', 'day'])
     for (binfile, day), fileAnnotations in byName:
         dfs = {}
         annotations_group = byName.get_group((binfile, day))
@@ -341,8 +340,8 @@ def switch_positions(dfs):
                       'dev_roll_med_acc_y']
     for dataset in list(dfs.values()):
         dataset['switched_pos'] = False
-        if 'act' in dataset.columns:
-            non_sleeping_indices = dataset['act'] != 1.0
+        if 'activity' in dataset.columns:
+            non_sleeping_indices = dataset['activity'] != 1.0
             non_sleeping = dataset[non_sleeping_indices]
         else:
            non_sleeping = dataset
