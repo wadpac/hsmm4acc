@@ -14,7 +14,7 @@ import os
 
 def parse_time(date_string):
     try:
-        return dateutil.parser.parse(date_string)
+        return pd.to_datetime(date_string, utc=True).tz_convert('Europe/London')
     except:
         print('Could not parse: ', date_string)
         return None
@@ -142,7 +142,10 @@ def load_data(binfile, day, filepath):
     filename_csv = binfile + '_day' + str(day) + '.csv'
     filename = filepath + filename_csv
     try:
-        data = pd.read_csv(filename, index_col='timestamp', parse_dates=[0], date_parser=dateutil.parser.parse, infer_datetime_format=True)
+        data = pd.read_csv(filename,
+                           index_col='timestamp', parse_dates=[0],
+                           infer_datetime_format=True)
+        data.index = data.index.tz_localize('Europe/London')
         data = data.dropna()
         data['filename'] = binfile + '_day' + str(day)
         result = data
@@ -338,8 +341,11 @@ def switch_positions(dfs):
                       'dev_roll_med_acc_y']
     for dataset in list(dfs.values()):
         dataset['switched_pos'] = False
-        non_sleeping_indices = dataset['act'] != 1.0
-        non_sleeping = dataset[non_sleeping_indices]
+        if 'act' in dataset.columns:
+            non_sleeping_indices = dataset['act'] != 1.0
+            non_sleeping = dataset[non_sleeping_indices]
+        else:
+           non_sleeping = dataset
         if not non_sleeping.empty:
             # in the 'correct' orientation, anglex should be mostly negative
             med_x = np.median(non_sleeping['anglex'])
