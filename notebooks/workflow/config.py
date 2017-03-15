@@ -5,7 +5,7 @@ import os
 ########################
 
 #This is the root path where your data lives
-data_root_path = "/media/windows-share/London/data_13012017/run_20170307/"
+data_root_path = "/media/sf_VBox_Shared/London/UCL_data_March/run_2017march14/"
 
 #For 0_PrepareData
 annotations_path = os.path.join(data_root_path, 'tud.csv')
@@ -17,6 +17,7 @@ subset_path = os.path.join(data_root_path, "subsets/")
 #For 1_HSMM
 model_path = os.path.join(data_root_path, 'models')
 states_path = os.path.join(data_root_path,'datawithstates')
+config_path = os.path.join(data_root_path,'config')
 
 #For 2_AnalyseResutls
 activities_simplified_path = os.path.join(data_root_path, 'TUD_simplified.csv')
@@ -32,14 +33,15 @@ column_names = ['acceleration'] # ,
 batch_size = 10
 
 # Maximum number of states
-Nmax = 10
+Nmax = 4 #10
 # Number of resamples to train the model. With more data, you need fewer resamples to converge.
-nr_resamples = 15 #15
+nr_resamples = 20 #15
 # Maximum duration of one state (in nr of 5-second intervals). A smaller number speeds up the calculations significantly
 truncate = 720 #360 = 30 minutes, 720 = 60 minutes
 
 # The name under which your model is saved
-model_name = 'model_{}states_{}batch_{}resamples_{}truncate.pkl'.format(Nmax,batch_size,nr_resamples,truncate)
+model_name = 'model_{}states_{}batch_{}resamples_{}truncate'.format(Nmax,batch_size,nr_resamples,truncate)
 #model_name = 'model_acc_{}states.pkl'.format(Nmax)
 #model_name = 'model_roldev_{}states.pkl'.format(Nmax)
 states_path_model = os.path.join(states_path, model_name)
+
