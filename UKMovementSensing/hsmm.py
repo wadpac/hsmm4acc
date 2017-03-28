@@ -48,30 +48,37 @@ def train_hsmm(X_list, Nmax=10, nr_resamples=10, trunc=600, visualize=True,
     model = initialize_model(Nmax, dim)
     model_dists = []
     prevstates = [np.zeros((X.shape[0])) for X in X_list]
-    if visualize:
-        fig, axes = plt.subplots(nr_resamples, figsize=(15, 5))
+
     for X in X_list:
         model.add_data(X, trunc=trunc)
+    converged = False
     for idx in range(nr_resamples):
-        t_start = clock()
-        # model_copy = model.resample_and_copy()
-        model.resample_model()
-        t_end = clock()
-        model_dists.append(copy.deepcopy(model.obs_distns))
-        if (idx + 1) % 1 == 0 and visualize:
-            print(idx)
-            print('Resampled {} sequences in {:.1f} seconds'.format(len(X_list), t_end - t_start))
-            print('Log likelihood: ', model.log_likelihood())
+        if not converged:
+            t_start = clock()
+            # model_copy = model.resample_and_copy()
+            model.resample_model()
+            t_end = clock()
+            model_dists.append(copy.deepcopy(model.obs_distns))
+            if (idx + 1) % 1 == 0 and visualize:
+                print(idx)
+                print('Resampled {} sequences in {:.1f} seconds'.format(len(X_list), t_end - t_start))
+                print('Log likelihood: ', model.log_likelihood())
+
+                model.plot_stateseq(example_index)
+                if(X_list[example_index].shape[1]>1):
+                    plot_observations(X_list[example_index], 0, 1, model,
+                                  model.stateseqs[example_index], Nmax)
+                plt.show()
+
             newstates = model.stateseqs
-            hamdis = np.mean([np.mean(a!=b) for a,b in zip(prevstates, newstates)])
-            print('Convergence: average Hamming distance is', hamdis)
+            hamdis = np.mean(
+                [np.mean(a != b) for a, b in zip(prevstates, newstates)])
+
             prevstates = newstates
-            model.plot_stateseq(example_index, ax=axes[idx])
-            if(X_list[example_index].shape[1]>1):
-                plot_observations(X_list[example_index], 0, 1, model,
-                              model.stateseqs[example_index], Nmax)
+            print('Convergence: average Hamming distance is', hamdis)
             if hamdis < max_hamming:
-                return model, model_dists
+                converged = True
+
     return model, model_dists
 
 
@@ -427,7 +434,8 @@ def plot_states_and_var_new(data, hidden_states, cmap=None, columns=None, by='Ac
             c=actseq,
             edgecolors='none'
         )
-    plt.show()
+    #plt.show()
+    return fig, ax
 
 def plot_heatmap(plotdata, horizontal_labels=None, vertical_labels=None, form='{:.4}'):
     """
