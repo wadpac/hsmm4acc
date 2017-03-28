@@ -116,17 +116,13 @@ def add_annotations(df, annotations_group):
     -------
     Pandas DataFrame with accelerometer data and annotations.
     """
-    firsttime = df.index[0]
-    if len(annotations_group) > 0:
-        # Check if start time of annotations corresponds with start time of accelerometer data
-        if firsttime != min(annotations_group.start_time): #firsttime.tz_localize('UTC') != min(annotations_group.start_time) :
-           print('starttime of data does not correspond with starttime of annotations!')
-           print(firsttime, min(annotations_group.start_time))
-    # Add slot column to df
-    df['slot'] = df.index - firsttime
-    df['slot'] = [int(np.floor(old_div(s.total_seconds(), 600))) + 1 for s in df['slot']]
-    if(len(df.slot.unique())<144):
-        print('Warning: only %d slots'%len(df.slot.unique()))
-    df_annotated = pd.merge(df, annotations_group[['slot', 'activity', 'label', 'start_time']], on='slot', how='left')
+    # Add rounded time
+    df['start_time'] = [tm - datetime.timedelta(minutes=tm.minute % 10,
+                                                seconds=tm.second,
+                                                microseconds=tm.microsecond)
+                        for tm in df.index]
+
+    df_annotated = pd.merge(df, annotations_group[
+        ['activity', 'label', 'start_time', 'slot']], on='start_time', how='left')
     df_annotated.index = df.index
     return df_annotated
