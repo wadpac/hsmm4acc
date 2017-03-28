@@ -5,7 +5,7 @@ import os
 ########################
 
 #This is the root path where your data lives
-data_root_path = "/media/sf_VBox_Shared/London/UCL_data_March/run_2017march14/"
+data_root_path = "/media/sf_VBox_Shared/London/UCL_data_March/run_2017march21/"
 
 #For 0_PrepareData
 annotations_path = os.path.join(data_root_path, 'tud.csv')
@@ -15,6 +15,7 @@ merged_path = os.path.join(data_root_path, 'merged/')
 subset_path = os.path.join(data_root_path, "subsets/")
 
 #For 1_HSMM
+train_path = merged_path
 model_path = os.path.join(data_root_path, 'models')
 states_path = os.path.join(data_root_path,'datawithstates')
 config_path = os.path.join(data_root_path,'config')
@@ -30,7 +31,7 @@ column_names = ['acceleration'] # ,
 #column_names = ['roll_med_acc_x', 'roll_med_acc_y', 'roll_med_acc_z']
 
 #For 1b_HSSM_batches:
-batch_size = 10
+batch_size = 0 #10
 
 # Maximum number of states
 Nmax = 4 #10
