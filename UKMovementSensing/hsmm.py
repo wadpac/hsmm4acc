@@ -343,46 +343,8 @@ def plot_perstate(data, hidden_states):
     plt.show()
 
 
+
 def plot_states_and_var(data, hidden_states, cmap=None, columns=None, by='Activity'):
-    """
-    Make  a plot of the data and the states
-
-    Parameters
-    ----------
-    data : pandas DataFrame
-        Data to plot
-    hidden_states: iteretable
-        the hidden states corresponding to the timesteps
-    columns : list, optional
-        Which columns to plot
-    by : str
-        The column to group on
-    """
-    fig, ax = plt.subplots(figsize=(15, 5))
-    if columns is None:
-        columns = data.columns
-    for act in set(data[by]):
-        for col in columns:
-            dfa = data[col].copy()
-            dfa[data[by] != act] = 0
-            dfa.plot(label=str(col) + ' - ' + str(act), ax=ax)
-    plt.legend(bbox_to_anchor=(0., 1.02, 1., .102), loc=3)
-    if cmap is None:
-        num_states = max(hidden_states) + 1
-        colormap, cmap = get_color_map(num_states)
-    scale = np.array(data[columns]).max()
-    sca = plt.scatter(
-        data.index,
-        np.ones_like(hidden_states) * scale,
-        c=hidden_states,
-        cmap=cmap,
-        edgecolors='none')
-    plt.colorbar(
-        sca,
-        ticks=np.arange(np.min(hidden_states),
-                        np.max(hidden_states) + 1))
-
-def plot_states_and_var_new(data, hidden_states, cmap=None, columns=None, by='Activity'):
     """
     Make  a plot of the data and the states
 
@@ -404,9 +366,7 @@ def plot_states_and_var_new(data, hidden_states, cmap=None, columns=None, by='Ac
     stateseq = np.array(hidden_states)
     stateseq_norep, durations = rle(stateseq)
     datamin, datamax = np.array(df).min(), np.array(df).max()
-    indexmin = np.array(df.index).min()
-    index_step = df.index[1] - df.index[0]
-    y =  np.array(
+    y = np.array(
         [datamin, datamax])
     maxstate = stateseq.max() + 1
     x = np.hstack(([0], durations.cumsum()[:-1], [len(df.index) - 1]))
@@ -425,7 +385,6 @@ def plot_states_and_var_new(data, hidden_states, cmap=None, columns=None, by='Ac
     ticks_num = locator.tick_values(min(df.index), max(df.index))
     ticks = [num_index.get_loc(t) for t in ticks_num]
     plt.xticks(ticks, df.index.strftime('%H:%M')[ticks], rotation='vertical')
-    #ax.pcolorfast(x, y, C, vmin=0, vmax=1, alpha=0.3, cmap=cmap)
     cb = plt.colorbar(pc)
     cb.set_ticks(np.arange(1./(2*cmap.N), 1, 1./cmap.N))
     cb.set_ticklabels(np.arange(0, cmap.N))
