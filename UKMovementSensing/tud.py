@@ -66,6 +66,13 @@ def process_annotations(annotations_path):
         print('Not all days have 144 slots! first 5:')
         print(nrslots[nrslots!=144].head())
 
+    starttimes = annotations.groupby(['day', 'accSmallID'])['start_time']
+    doubles = starttimes.nunique() < starttimes.count()
+    if (sum(doubles) > 0):
+        print('{} id/day combination with double start_time, first 5:'
+              .format(sum(doubles)))
+        print(starttimes.count()[doubles].head(5))
+
     return annotations
 
 
