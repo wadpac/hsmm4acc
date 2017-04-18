@@ -32,11 +32,13 @@ def process_annotations(annotations_path):
     Pandas dataframe with annotations
 
     """
-    annotations = pd.read_csv(annotations_path)
-
-    # Convert timestamps to datetime
-    annotations['start_time'] = [parse_time(s) for s in annotations['start_time']]
-    annotations['end_time'] = [parse_time(s) for s in annotations['end_time']]
+    # annotations = pd.read_csv(annotations_path)
+    #
+    # # Convert timestamps to datetime
+    # annotations['start_time'] = [parse_time(s) for s in annotations['start_time']]
+    # annotations['end_time'] = [parse_time(s) for s in annotations['end_time']]
+    annotations = pd.read_csv(annotations_path, parse_dates=['start_time', 'end_time'],
+                              date_parser=parse_time)
 
     # Sort on measure day and time slot
     annotations = annotations.sort_values(['accSmallID', 'day', 'slot'])
@@ -108,7 +110,7 @@ def join_wearcodes(wearcodes, annotations, mergeID = 'accSmallID'):
     return annotations_codes
 
 
-def add_annotations(df, annotations_group):
+def add_annotations(df, annotation_codes, binFile, day, on='time', tz='Europe/London'):
     """
     Add annotations to accelerometer data.
 
@@ -116,20 +118,50 @@ def add_annotations(df, annotations_group):
     ----------
     df : Pandas DataFrame
         Accelerometer data
-    annotations_group
-        Annotations for this specific binfile and day
+    annotation_codes
+        Dataframe with annotations and wear codes
 
     Returns
     -------
     Pandas DataFrame with accelerometer data and annotations.
     """
-    # Add rounded time
-    df['start_time'] = [tm - datetime.timedelta(minutes=tm.minute % 10,
-                                                seconds=tm.second,
-                                                microseconds=tm.microsecond)
-                        for tm in df.index]
+    df['binFile'] = binFile
+    df['day'] = day
 
-    df_annotated = pd.merge(df, annotations_group[
-        ['activity', 'label', 'start_time', 'slot']], on='start_time', how='left')
-    df_annotated.index = df.index
+    if on=='time':
+    # Add rounded time
+        df['start_time'] = [tm - datetime.timedelta(minutes=tm.minute % 10,
+                                                    seconds=tm.second,
+                                                    microseconds=tm.microsecond)
+                            for tm in df.index]
+
+        df_annotated = pd.merge(df, annotation_codes[
+            ['activity', 'label', 'start_time', 'slot', 'binFile', 'day']],
+                                 on=['start_time', 'binFile', 'day'], how='left')
+        df_annotated.index = df.index
+
+    elif on=='slot':
+        # Add the slots
+        codes = annotation_codes[annotation_codes['binFile'] == binFile]
+        if len(codes)>0:
+            ind = codes.first_valid_index()
+            date = codes['Day{}'.format(day)][ind]
+            firsttime = date.tz_localize(tz) + pd.Timedelta(4,
+                                                                     unit='h')
+            df['slot'] = df.index - firsttime
+            df['slot'] = [int(np.floor(old_div(s.total_seconds(), 600))) + 1 for s
+                          in df['slot']]
+            df_annotated = pd.merge(df, annotation_codes[
+                    ['activity', 'label', 'start_time', 'slot', 'binFile', 'day']],
+                                    on=['slot', 'binFile', 'day'], how='left')
+            df_annotated.index = df.index
+        else:
+            print("No annotations for file {} day {}!".format(binFile, day))
+            df_annotated = df
+            # Add the columns for the missing annotations
+            for c in ['activity', 'label', 'start_time', 'slot']:
+                df_annotated[c] = None
+    else:
+        raise ValueError("value of 'on' should be either 'time' or 'slot'")
+
     return df_annotated
