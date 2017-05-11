@@ -64,11 +64,11 @@ def train_hsmm(X_list, Nmax=10, nr_resamples=10, trunc=600, visualize=True,
                 print('Resampled {} sequences in {:.1f} seconds'.format(len(X_list), t_end - t_start))
                 print('Log likelihood: ', model.log_likelihood())
 
-                model.plot_stateseq(example_index)
+                model.plot_stateseq(example_index, draw=False)
                 if(X_list[example_index].shape[1]>1):
                     plot_observations(X_list[example_index], 0, 1, model,
                                   model.stateseqs[example_index], Nmax)
-                plt.show()
+                plt.draw()
 
             newstates = model.stateseqs
             hamdis = np.mean(
@@ -125,7 +125,7 @@ def iterate_hsmm_batch(X_list, model, current_states, trunc,
 
     # Visualize
     if example_index is not None:
-        model.plot_stateseq(example_index, ax=axis)
+        model.plot_stateseq(example_index, ax=axis, draw=False)
 
     model.states_list = []
     return model, hamdis, newstates
@@ -340,7 +340,7 @@ def plot_perstate(data, hidden_states):
         ax.set_title("{0}th hidden state".format(i))
         ax.grid(True)
     plt.legend(bbox_to_anchor=(0, -1, 1, 1), loc='lower center')
-    plt.show()
+    plt.draw()
 
 
 
@@ -397,7 +397,7 @@ def plot_states_and_var(data, hidden_states, cmap=None, columns=None, by='Activi
             c=actseq,
             edgecolors='none'
         )
-    #plt.show()
+    plt.draw()
     return fig, ax
 
 def plot_heatmap(plotdata, horizontal_labels=None, vertical_labels=None, form='{:.4}'):
