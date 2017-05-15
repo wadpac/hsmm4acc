@@ -11,10 +11,14 @@ from pybasicbayes.util.plot import plot_gaussian_2D
 from pyhsmm.util.general import rle
 from time import clock
 import copy
+import os
 import pandas as pd
+import pickle
 from matplotlib.dates import date2num, AutoDateLocator
 
-def train_hsmm(X_list, Nmax=10, nr_resamples=10, trunc=600, visualize=True,
+def train_hsmm(X_list, Nmax=10, nr_resamples=10, trunc=600,
+               verbose=True, visualize=True,
+               save_model_path=None,
                example_index=0, max_hamming=0.05):
     """
     Fit an Hidden Semi Markov Model on a list of sequences.
@@ -29,8 +33,12 @@ def train_hsmm(X_list, Nmax=10, nr_resamples=10, trunc=600, visualize=True,
         Number of times the model is resampled on all data
     trunc : int, optional
         Maximum duration of a state, for optimization
+    verbose: bool, optional
+        Option to print information during training
     visualize : bool, optional
         Option to show plots during the process
+    save_model_path: str, optional
+        Path to save intermediate models
     example_index : int, optional
         Which of the sequences to use as an example for plotting
     max_hamming : float, optional
@@ -41,12 +49,9 @@ def train_hsmm(X_list, Nmax=10, nr_resamples=10, trunc=600, visualize=True,
     ------
     model : pyhsmm model
         The resampled model
-    model_dists : list of distributions
-        Observation distributions of the states for each sample step
     """
     dim = X_list[0].shape[1]
     model = initialize_model(Nmax, dim)
-    model_dists = []
     prevstates = [np.zeros((X.shape[0])) for X in X_list]
 
     for X in X_list:
@@ -54,32 +59,40 @@ def train_hsmm(X_list, Nmax=10, nr_resamples=10, trunc=600, visualize=True,
     converged = False
     for idx in range(nr_resamples):
         if not converged:
+            if verbose:
+                print('Training iteration {}'.format(idx))
             t_start = clock()
             # model_copy = model.resample_and_copy()
             model.resample_model()
             t_end = clock()
-            model_dists.append(copy.deepcopy(model.obs_distns))
-            if (idx + 1) % 1 == 0 and visualize:
-                print(idx)
-                print('Resampled {} sequences in {:.1f} seconds'.format(len(X_list), t_end - t_start))
+            if verbose:
+                print('Resampled {} sequences in {:.1f} seconds'.format(
+                    len(X_list), t_end - t_start))
                 print('Log likelihood: ', model.log_likelihood())
-
-                model.plot_stateseq(example_index, draw=False)
+            if (idx + 1) % 1 == 0 and visualize:
+                model.plot_stateseq(example_index, draw=visualize)
                 if(X_list[example_index].shape[1]>1):
                     plot_observations(X_list[example_index], 0, 1, model,
                                   model.stateseqs[example_index], Nmax)
                 plt.draw()
+            if save_model_path is not None:
+                filename = os.path.join(save_model_path, 'model_i{}.pkl'.format(idx))
+                model_copy = copy.deepcopy(model)
+                model_copy.states_list = []
+                with open(filename, 'wb') as f:
+                    pickle.dump(model_copy, file=f)
 
             newstates = model.stateseqs
             hamdis = np.mean(
                 [np.mean(a != b) for a, b in zip(prevstates, newstates)])
 
             prevstates = newstates
-            print('Convergence: average Hamming distance is', hamdis)
+            if verbose:
+                print('Convergence: average Hamming distance is', hamdis)
             if hamdis < max_hamming:
                 converged = True
 
-    return model, model_dists
+    return model
 
 
 def read_data(filename, column_names):
@@ -132,7 +145,8 @@ def iterate_hsmm_batch(X_list, model, current_states, trunc,
 
 
 def train_hsmm_all(filenames, column_names, batchsize=10, Nmax=10,
-                   nr_resamples=10, trunc=600, visualize=True,
+                   nr_resamples=10, trunc=600, verbose=True, visualize=True,
+               save_model_path=None,
                    example_index=0, max_hamming=0.05):
     """
     Fit an Hidden Semi Markov Model a list of files, in batches.
@@ -163,8 +177,6 @@ def train_hsmm_all(filenames, column_names, batchsize=10, Nmax=10,
     ------
     model : pyhsmm model
         The resampled model
-    model_dists : list of distributions
-        Observation distributions of the states for each sample step
     """
     dim = len(column_names)
     model = initialize_model(Nmax, dim)
@@ -176,10 +188,13 @@ def train_hsmm_all(filenames, column_names, batchsize=10, Nmax=10,
                range(0, len(filenames), batchsize)]
     example_batch = np.floor(float(example_index) / len(filenames))
     example_index = example_index % batchsize
-    print('Nr of batches: ' + str(len(batches)))
+    if verbose:
+        print('Nr of batches: ' + str(len(batches)))
     states = [None for i in range(len(batches))]
 
     for idx in range(nr_resamples):
+        if verbose:
+            print('Training iteration {}'.format(idx))
         t_start = clock()
         hamdis_list = []
         for i, batch in enumerate(batches):
@@ -196,11 +211,18 @@ def train_hsmm_all(filenames, column_names, batchsize=10, Nmax=10,
         t_end = clock()
         hamdis = np.mean(hamdis_list)
 
-        if (idx + 1) % 1 == 0 and visualize:
+        if (idx + 1) % 1 == 0 and verbose:
             print(idx)
             print('Resampled all sequences in {:.1f} seconds'.format(
                 t_end - t_start))
             print('Convergence: average Hamming distance is', hamdis)
+
+        if save_model_path is not None:
+            filename = os.path.join(save_model_path, 'model_i{}.pkl'.format(idx))
+            model_copy = copy.deepcopy(model)
+            model_copy.states_list = []
+            with open(filename, 'wb') as f:
+                pickle.dump(model_copy, file=f)
 
         # Early convergence:
         if hamdis < max_hamming:
