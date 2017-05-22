@@ -53,6 +53,8 @@ def train_hsmm(X_list, Nmax=10, nr_resamples=10, trunc=600,
     dim = X_list[0].shape[1]
     model = initialize_model(Nmax, dim)
     prevstates = [np.zeros((X.shape[0])) for X in X_list]
+    if visualize:
+        fig, axes = plt.subplots(nr_resamples, figsize=(15, 2*nr_resamples))
 
     for X in X_list:
         model.add_data(X, trunc=trunc)
@@ -70,17 +72,17 @@ def train_hsmm(X_list, Nmax=10, nr_resamples=10, trunc=600,
                     len(X_list), t_end - t_start))
                 print('Log likelihood: ', model.log_likelihood())
             if (idx + 1) % 1 == 0 and visualize:
-                model.plot_stateseq(example_index, draw=visualize)
-                if(X_list[example_index].shape[1]>1):
-                    plot_observations(X_list[example_index], 0, 1, model,
-                                  model.stateseqs[example_index], Nmax)
-                plt.draw()
+                model.plot_stateseq(example_index, ax=axes[idx], draw=visualize)
+                # if(X_list[example_index].shape[1]>1):
+                #     # plot_observations(X_list[example_index], 0, 1, model,
+                #     #               model.stateseqs[example_index], Nmax)
             if save_model_path is not None:
                 filename = os.path.join(save_model_path, 'model_i{}.pkl'.format(idx))
-                model_copy = copy.deepcopy(model)
-                model_copy.states_list = []
+                states_list = model.states_list
+                model.states_list = []
                 with open(filename, 'wb') as f:
-                    pickle.dump(model_copy, file=f)
+                    pickle.dump(model, file=f)
+                model.states_list = states_list
 
             newstates = model.stateseqs
             hamdis = np.mean(
@@ -181,7 +183,7 @@ def train_hsmm_all(filenames, column_names, batchsize=10, Nmax=10,
     dim = len(column_names)
     model = initialize_model(Nmax, dim)
     if visualize:
-        fig, axes = plt.subplots(nr_resamples, figsize=(15, 5))
+        fig, axes = plt.subplots(nr_resamples, figsize=(15, nr_resamples))
 
     # Make batches and keep all states in memory to compute the hamming distance
     batches = [filenames[i:i + batchsize] for i in
@@ -218,11 +220,13 @@ def train_hsmm_all(filenames, column_names, batchsize=10, Nmax=10,
             print('Convergence: average Hamming distance is', hamdis)
 
         if save_model_path is not None:
-            filename = os.path.join(save_model_path, 'model_i{}.pkl'.format(idx))
-            model_copy = copy.deepcopy(model)
-            model_copy.states_list = []
+            filename = os.path.join(save_model_path,
+                                    'model_i{}.pkl'.format(idx))
+            states_list = model.states_list
+            model.states_list = []
             with open(filename, 'wb') as f:
-                pickle.dump(model_copy, file=f)
+                pickle.dump(model, file=f)
+            model.states_list = states_list
 
         # Early convergence:
         if hamdis < max_hamming:
