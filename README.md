@@ -24,6 +24,21 @@ Navigate to the root of this repository. To install, try:
 
 `pip install .`
 
+### Installation troubleshooting
+#### ImportError: No module named hmm_messages_interface
+The `pyhsmm` package needs the right gcc compiler (it seems to work with gcc 4.7).  You can clone the pyhsmm package and compile it:
+
+`python setup.py build_ext`
+
+Which should solve the issue.
+See also https://github.com/mattjj/pyhsmm/issues/55. 
+
+#### Intel MKL FATAL ERROR: Cannot load libmkl_avx.so or libmkl_def.so.
+You can disable the use of mkl with:
+`conda install nomkl`
+
+
+
 ### Running tests
 To run tests:
 
