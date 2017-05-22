@@ -21,11 +21,10 @@ def test_train_hsmm_one():
     X_list = create_dataset_many(
         dim=2, nrstates=5, size=1, maxduration=maxduration)
     nr_resamples = 10
-    model, model_dists = hsmm.train_hsmm(X_list, Nmax=10,
+    model = hsmm.train_hsmm(X_list, Nmax=10,
                                          nr_resamples=nr_resamples,
                                          trunc=maxduration, visualize=False,
                                          example_index=0, max_hamming=0.05)
-    assert len(model_dists) <= nr_resamples
     assert len(model.stateseqs) == len(X_list)
 
 
@@ -50,8 +49,7 @@ def test_train_hsmm_many():
         dim=2, size=10, maxduration=maxduration, nrstates=nrstates)
     # print([X for X in X_list])
     nr_resamples = 10
-    model, model_dists = hsmm.train_hsmm(
+    model = hsmm.train_hsmm(
         X_list, Nmax=nrstates, nr_resamples=nr_resamples, trunc=maxduration, visualize=False,
         example_index=0, max_hamming=0.05)
-    assert len(model_dists) <= nr_resamples
     assert len(model.stateseqs) == len(X_list)
