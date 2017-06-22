@@ -15,6 +15,7 @@ import os
 import pandas as pd
 import pickle
 from matplotlib.dates import date2num, AutoDateLocator
+import json
 
 def train_hsmm(X_list, Nmax=10, nr_resamples=10, trunc=600,
                verbose=True, visualize=True,
@@ -53,6 +54,7 @@ def train_hsmm(X_list, Nmax=10, nr_resamples=10, trunc=600,
     dim = X_list[0].shape[1]
     model = initialize_model(Nmax, dim)
     prevstates = [np.zeros((X.shape[0])) for X in X_list]
+    hamdis_list = []
     if visualize:
         fig, axes = plt.subplots(nr_resamples, figsize=(15, 2*nr_resamples))
 
@@ -87,12 +89,16 @@ def train_hsmm(X_list, Nmax=10, nr_resamples=10, trunc=600,
             newstates = model.stateseqs
             hamdis = np.mean(
                 [np.mean(a != b) for a, b in zip(prevstates, newstates)])
-
+            hamdis_list.append(hamdis)
             prevstates = newstates
             if verbose:
                 print('Convergence: average Hamming distance is', hamdis)
             if hamdis < max_hamming:
                 converged = True
+    if save_model_path is not None:
+        filename = os.path.join(save_model_path, 'convergence.json')
+        with open(filename, 'w') as f:
+            json.dump(hamdis_list, f)
 
     return model
 
@@ -366,7 +372,7 @@ def plot_perstate(data, hidden_states):
         ax.set_title("{0}th hidden state".format(i))
         ax.grid(True)
     plt.legend(bbox_to_anchor=(0, -1, 1, 1), loc='lower center')
-    plt.draw()
+    plt.show()
 
 
 
@@ -423,7 +429,7 @@ def plot_states_and_var(data, hidden_states, cmap=None, columns=None, by='Activi
             c=actseq,
             edgecolors='none'
         )
-    plt.draw()
+    plt.show()
     return fig, ax
 
 def plot_heatmap(plotdata, horizontal_labels=None, vertical_labels=None, form='{:.4}'):
