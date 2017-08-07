@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# UKMovementSensing documentation build configuration file, created by
+# hsmm4acc documentation build configuration file, created by
 # sphinx-quickstart on Tue Mar 29 15:46:32 2016.
 #
 # This file is execfile()d with the current directory set to its
@@ -48,7 +48,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'UKMovementSensing'
+project = u'hsmm4acc'
 copyright = u'2016, Netherlands eScience Center'
 author = u'Dafne van Kuppevelt'
 

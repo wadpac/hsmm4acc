@@ -1,4 +1,4 @@
-name: ucl
+name: hsmm
 channels:
 - defaults
 dependencies:
@@ -52,5 +52,4 @@ dependencies:
   - future==0.16.0
   - pybasicbayes==0.2.2
   - pyhsmm==0.1.6
-prefix: /data/anaconda/anaconda3/envs/ucl
 

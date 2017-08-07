@@ -1,4 +1,4 @@
-import UKMovementSensing.hsmm as hsmm
+import hsmm4acc.hsmm as hsmm
 import numpy as np
 
 
