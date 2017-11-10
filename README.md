@@ -1,6 +1,10 @@
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.1045204.svg)](https://doi.org/10.5281/zenodo.1045204)
+
 # HSMMs for accelerometer data
 This repository is for the project by NLeSC in collaboration with UCL, of analyzing movement sensor data of adolescents. It contains code for processing accelerometer data using Hidden Semi Markov models (using the [pyhsmm](https://github.com/mattjj/pyhsmm) package).
 This software is meant for accelerometer data processed with the [R-package GGIR](https://github.com/wadpac/GGIR).
+
+Please cite the [DOI](https://zenodo.org/record/1045204) when using this software.
 
 ## Installation
 Prerequisites:
